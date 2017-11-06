@@ -242,7 +242,6 @@ class ActiveArea(Scaler):
     def __init__(self, w, ll, pole=None, body_basis=None):
         from astropy.coordinates import spherical_to_cartesian
         from .generators import Vej
-        #from mskpy.util import vector_rotate
         
         self.w = w
         self.ll = ll
@@ -281,7 +280,7 @@ class ActiveArea(Scaler):
 
         """
         
-        from mskpy.util import mhat
+        from .util import mhat
 
         try:
             v_ej = self._get(['v_ej'], p, kwargs)
@@ -384,7 +383,7 @@ class NormalActiveArea(ActiveArea):
             np.array2string(self.body_basis, separator=','))
 
     def __call__(self, p=None, **kwargs):
-        from mskpy.util import mhat
+        from .util import mhat
         
         try:
             v_ej = self._get(['v_ej'], p, kwargs)
@@ -923,7 +922,7 @@ class SunCone(Scaler):
 
         """
 
-        from mskpy.util import mhat
+        from .util import mhat
         
         try:
             r_i, v_ej = self._get(('r_i', 'v_ej'), p, kwargs)

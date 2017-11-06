@@ -169,7 +169,7 @@ class Particle:
     @property
     def s_ej(self):
         """Ejection speed. [km/s]"""
-        from mskpy.util import mhat
+        from .util import mhat
         return mhat(self.v_ej)[0]
     
     @property
@@ -180,7 +180,7 @@ class Particle:
     @property
     def d_f(self):
         """Final heliocentric distance. [km]"""
-        from mskpy.util import mhat
+        from .util import mhat
         return mhat(self.r_f)[0]
 
     @property
@@ -196,7 +196,7 @@ class Particle:
     @property
     def s_f(self):
         """Final speed. [km/s]"""
-        from mskpy.util import mhat
+        from .util import mhat
         return mhat(self.v_i)[0]
 
     @property
@@ -212,7 +212,7 @@ class Particle:
     @property
     def d_i(self):
         """Initial heliocentric distance. [km]"""
-        from mskpy.util import mhat
+        from .util import mhat
         return mhat(self.r_i)[0]
 
     @property
@@ -228,7 +228,7 @@ class Particle:
     @property
     def s_i(self):
         """Initial speed. [km/s]"""
-        from mskpy.util import mhat
+        from .util import mhat
         return mhat(self.v_i)[0]
 
     @property

@@ -5,6 +5,7 @@ from numpy import pi
 import pytest
 import comadyn.generators as g
 from comadyn.generators import *
+from comadyn.util import mhat
 
 def test_CosineAngle():
     # make the test deterministic
@@ -234,31 +235,37 @@ def test_Isotropic():
     N = 1000
     u = Isotropic()
     init = State([1.0, 0, 0], [0, 1.0, 0], 2458056.5)
-    v, origin = u.next(init, N)
+    v = u.next(init, N)
+
+    # all vectors should have length 1
+    assert np.allclose(mhat(v)[0], np.ones(N))
 
     # expectation value for the vector sum magnitude is sqrt(N)
     assert np.sqrt(np.sum(v.sum(0)**2)) < 2 * np.sqrt(N)
 
 def test_UniformLatitude():
     from comadyn.state import State
+    
     np.random.seed(1448982574)
 
     N = 1000
     init = State([1.0, 0, 0], [0, 1.0, 0], 2458056.5)
     pole = np.array([0, 0, 1.0])
     u = UniformLatitude(np.radians((-5, 5)), pole=pole)
-    v, origin = u.next(init, N)
+    v = u.next(init, N)
+    origin = u.origin(v)
 
+    assert np.allclose(mhat(v)[0], np.ones(N))
+    
     # expectation value for the vector sum magnitude is
     # |1/3 1/3 sin(5 deg)| * sqrt(N) ?
     d = np.sqrt(np.sum(np.array([1/3, 1/3, np.sin(np.radians(5))])**2))
     assert np.sqrt(np.sum(v.sum(0)**2)) < 2 * d * np.sqrt(N)
 
-    assert min(origin[:, 1]) >= -5
-    assert max(origin[:, 1]) <= 5
+    assert min(origin[1]) >= -5
+    assert max(origin[1]) <= 5
 
 def test_Sunward():
-    from mskpy.util import mhat
     from comadyn.state import State
     
     np.random.seed(1448982574)
@@ -272,14 +279,19 @@ def test_Sunward():
     
     # all vectors should align with the sunward direction
     u = Sunward(w=0)
-    v, origin = u.next(init, N)
+    v = u.next(init, N)
     assert np.allclose(v, s)
 
+    # all vectors should have length 1
+    assert np.allclose(mhat(v)[0], np.ones(N))
+    
     # all vectors should be within 25 degrees from sunward direction
     u = Sunward(w=np.radians(50))
-    v, origin = u.next(init, N)
+    v = u.next(init, N)
     assert not np.allclose(v, s)
-
     cth = np.sum(s * v, -1)
     assert min(cth) >= np.cos(np.radians(25))
+    
+    # all vectors should have length 1
+    assert np.allclose(mhat(v)[0], np.ones(N))
     

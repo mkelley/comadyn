@@ -494,9 +494,9 @@ class Vej(Generator, metaclass=ABCMeta):
     Parameters
     ----------
     pole : array, optional
-      The pole in Ecliptic coordinates, angular (lambda, beta) or
-      rectangular (x, y, z).  The Vernal equinox will be arbitrarily
-      defined.
+      The pole in Ecliptic coordinates, angular (lambda, beta) [rad]
+      or rectangular (x, y, z).  The Vernal equinox will be
+      arbitrarily defined.
     body_basis : array, optional
       Nx3 array of x, y, and z unit vectors defining the
       planetocentric coordinate system, in Ecliptic rectangular
@@ -597,9 +597,15 @@ class Vej(Generator, metaclass=ABCMeta):
 
         Parameters
         ----------
-        init : State
-          The state of the parent object (comet) at the time of
+        init : State or array of State
+          The state(s) of the parent object (comet) at the time(s) of
           ejection.
+
+        Returns
+        -------
+        a : ndarray
+          Axis/axes of symmetry, shape (N, 3), where N is the number
+          of initial states provided.
 
         """
         pass
@@ -624,7 +630,7 @@ class Vej(Generator, metaclass=ABCMeta):
         ----------
         pole : array-like
           Ecliptic coordinates of the pole, may be angular (lambda,
-          beta) in degrees, or rectangular (x, y, z).
+          beta) in radians, or rectangular (x, y, z).
         vernal_eq : array-like, optional
           Ecliptic coordinates of the Vernal equinox, same format as
           `pole`.  If `None`, then the VE will be generated from `y ×
@@ -641,7 +647,7 @@ class Vej(Generator, metaclass=ABCMeta):
 
         """
 
-        from mskpy.util import lb2xyz, mhat
+        from .util import mhat, lb2xyz
 
         z = pole if len(pole) == 3 else lb2xyz(pole)
         z = mhat(z)[1]
@@ -724,22 +730,12 @@ class Vej(Generator, metaclass=ABCMeta):
         # define axis of symmetry
         axis = self.axis(init)
 
-        # anywhere axis == [0, 0, 0], v must be [0, 0, 0]
-        if axis.ndim == 1:
-            if np.all(axis == 0):
-                return np.zeros((N, 3))
-
-        i = np.sum(np.abs(axis), 1) == 0
-        v = np.empty(r.shape)
-        if np.any(i):
-            v[i] = 0
-            
+        # if axis is [0, 0, 0], return [0, 0, 0]
+        if np.allclose(axis, 0):
+            return np.zeros((N, 3))
+        
         # rotate `r` from axis of symmetry coords to Ecliptic coords
-        if np.any(~i):
-            if axis.ndim == 1:
-                v[~i] = util.vector_rotate(r[~i], [0, 0, 1], axis)
-            else:
-                v[~i] = util.vector_rotate(r[~i], [0, 0, 1], axis[~i])
+        v = util.vector_rotate(r, [0, 0, 1], axis)
 
         return v
     
@@ -748,37 +744,32 @@ class Vej(Generator, metaclass=ABCMeta):
         self.phi_dist.reset()
        
 class Isotropic(Vej):
+    """Isotropic emission.
+
+    The axis of symmetry is arbitrary.
+
+    """
     def __init__(self):
         Vej.__init__(self, w=2 * np.pi, distribution='UniformAngle')
-        self._axis = np.array([1.0, 0.0, 0.0])
+        self._axis = np.array([[1.0, 0.0, 0.0]])
 
     def axis(self, init):
-        """The axis of symmetry, arbitrary.
-
-        Parameters
-        ----------
-        init : State
-          The state of the parent object (comet) at the time of
-          ejection.
-
-        """
         return self._axis
 
     def __str__(self):
         return "Isotropic()"
 
-    __doc__ = ["Isotropic emission."]
-    doc = Vej.__doc__.splitlines()
-    __doc__.extend(doc[1:doc.index('    Parameters')])
-    __doc__.extend(doc[doc.index('    Attributes'):])
-    __doc__ = '\n'.join(__doc__)
-    del doc
+    i = Vej.__doc__.find('Parameters')
+    __doc__ += Vej.__doc__[i:]
+    del i
 
 class UniformLatitude(Vej):
     def __init__(self, lrange, pole=None, body_basis=None):
         """Uniform emission from a range of latitudes.
 
         Vectors are uniform in solid angle.
+
+        The axis of symmetry is the pole.
 
         Parameters
         ----------
@@ -801,29 +792,21 @@ class UniformLatitude(Vej):
                      phi_dist=phi_dist, theta_dist=theta_dist)
 
     def axis(self, init):
-        """The axis of symmetry is the pole.
-
-        Parameters
-        ----------
-        init : State
-          The state of the parent object (comet) at the time of
-          ejection.
-
-        """
-        return self.body_basis[2]
+        return self.body_basis[2][np.newaxis]
 
     def __str__(self):
         return "UniformLatitude(body_basis={}, theta_dist={}, phi_dist={})".format(
             np.array2string(self.body_basis, separator=','),
             self.theta_dist, self.phi_dist)
 
-    __doc__ = __doc__.splitlines()
-    doc = Vej.__doc__.splitlines()
-    __doc__.extend(doc[doc.index('    Attributes'):])
-    __doc__ = '\n'.join(__doc__)
-    del doc
+    i = Vej.__doc__.find('Attributes')
+    __doc__ += Vej.__doc__[i:]
+    del i
 
 class Sunward(Vej):
+    """Ejection velocity cone centered on the sunward vector.
+
+    """
     def axis(self, init):
         """The axis of symmetry: the comet-Sun unit vector.
 
@@ -840,7 +823,7 @@ class Sunward(Vej):
 
         """
 
-        from mskpy.util import mhat
+        from .util import mhat
         
         if np.iterable(init):
             r = np.array(list((i.r for i in init)))
@@ -864,6 +847,6 @@ class Sunward(Vej):
                     self._w, self._distribution,
                     self.theta_dist, self.phi_dist))
 
-    __doc__ = ["Ejection velocity cone centered on the sunward vector."]
-    __doc__.extend(Vej.__doc__.split('\n')[1:])
-    __doc__ = '\n'.join(__doc__)
+    i = Vej.__doc__.find('Parameters')
+    __doc__ += Vej.__doc__[i:]
+    del i
